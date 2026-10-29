@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('搜索')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: topbar}"></header>
+<main th:replace="~{fragments/layout :: flash}"></main>
+
+<section class="container">
+    <div class="section-head">
+        <h1><i class="fa-solid fa-magnifying-glass"></i> 搜索</h1>
+        <span class="muted" th:if="${q != null and !q.isEmpty()}" th:text="'共 ' + ${images.totalElements} + ' 条结果'"></span>
+    </div>
+
+    <div class="grid" th:if="${!#lists.isEmpty(images)}">
+        <a class="img-card" th:each="img : ${images}" th:href="@{'/image/' + ${img.idEncoded}}"
+           th:classappend="${nsfwBlur and img.imageNsfw} ? ' is-nsfw'">
+            <img th:src="${img.thumbUrl}" th:alt="${img.imageTitle}" loading="lazy">
+            <div class="img-overlay">
+                <span class="img-title" th:text="${#strings.abbreviate(img.imageTitle != null ? img.imageTitle : img.imageOriginalFilename, 26)}"></span>
+                <span class="img-views"><i class="fa-solid fa-eye"></i> <span th:text="${img.imageViews}"></span></span>
+            </div>
+        </a>
+    </div>
+    <p class="empty muted" th:if="${q == null or q.isEmpty()}">输入关键词搜索公开图片</p>
+    <p class="empty muted" th:if="${q != null and !q.isEmpty() and #lists.isEmpty(images)}">没有找到匹配的图片</p>
+
+    <nav class="pagination" th:if="${images.totalPages > 1}">
+        <a th:if="${currentPage > 1}" th:href="@{/search(q=${q},page=${currentPage - 1})}">← 上一页</a>
+        <span class="muted" th:text="${currentPage} + ' / ' + ${images.totalPages}"></span>
+        <a th:if="${currentPage < images.totalPages}" th:href="@{/search(q=${q},page=${currentPage + 1})}">下一页 →</a>
+    </nav>
+</section>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+<script th:replace="~{fragments/layout :: scripts}"></script>
+</body>
+</html>

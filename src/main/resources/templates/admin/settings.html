@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('站点设置')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: topbar}"></header>
+<main th:replace="~{fragments/layout :: flash}"></main>
+
+<section class="container settings-page">
+        <aside th:replace="~{fragments/admin-nav :: nav('settings')}"></aside>
+
+    <div class="settings-content card">
+        <h2><i class="fa-solid fa-gear"></i> 站点设置</h2>
+        <form th:action="@{/admin/settings}" method="post" class="stack-form narrow">
+            <label>网站名称 <input type="text" name="website_name" th:value="${settings['website_name']}"></label>
+            <label>网站描述 <textarea name="website_description" rows="2" th:text="${settings['website_description']}"></textarea></label>
+            <label>单个文件大小上限（MB）
+                <input type="number" min="1" name="upload_max_filesize_mb" th:value="${settings['upload_max_filesize_mb']}"></label>
+            <label>缩略图边长（px）
+                <input type="number" min="32" name="thumbnail_size" th:value="${settings['thumbnail_size']}"></label>
+            <label>默认隐私
+                <select name="default_privacy">
+                    <option value="public" th:selected="${settings['default_privacy'] == 'public'}">公开</option>
+                    <option value="private_but_link" th:selected="${settings['default_privacy'] == 'private_but_link'}">链接可见</option>
+                    <option value="private" th:selected="${settings['default_privacy'] == 'private'}">私密</option>
+                </select>
+            </label>
+            <label class="checkbox">
+                <input type="checkbox" name="guest_uploads" value="1" th:checked="${settings['guest_uploads'] == 'true' or settings['guest_uploads'] == '1'}">
+                允许游客上传
+            </label>
+            <label class="checkbox">
+                <input type="checkbox" name="upload_api_enabled" value="1" th:checked="${settings['upload_api_enabled'] == 'true' or settings['upload_api_enabled'] == '1'}">
+                开放 API 上传接口
+            </label>
+            <label class="checkbox">
+                <input type="checkbox" name="enable_duplicate_uploads" value="1" th:checked="${settings['enable_duplicate_uploads'] == 'true' or settings['enable_duplicate_uploads'] == '1'}">
+                允许重复上传（勾选后关闭查重；不勾选时同一 IP 24 小时内上传相同图片会被拒绝，管理员不受限）
+            </label>
+
+            <h3 class="form-section"><i class="fa-solid fa-stamp"></i> 水印</h3>
+            <label class="checkbox">
+                <input type="checkbox" name="watermark_enable" value="1" th:checked="${settings['watermark_enable'] == '1'}">
+                启用水印
+            </label>
+            <label>水印图（图片的绝对路径；留空则使用内置水印）
+                <input type="text" name="watermark_image" th:value="${settings['watermark_image']}"
+                       placeholder="/path/to/watermark.png"></label>
+            <label>水印位置（水平 垂直）
+                <select name="watermark_position">
+                    <option th:each="p : ${ {'left top','center top','right top','left center','center center','right center','left bottom','center bottom','right bottom'} }"
+                            th:value="${p}" th:text="${p}" th:selected="${settings['watermark_position'] == p}"></option>
+                </select>
+            </label>
+            <label>水印占比（面积百分比，%）
+                <input type="number" min="1" max="100" name="watermark_percentage" th:value="${settings['watermark_percentage']}"></label>
+            <label>不透明度（0-100）
+                <input type="number" min="0" max="100" name="watermark_opacity" th:value="${settings['watermark_opacity']}"></label>
+            <label>边距（px）
+                <input type="number" min="0" name="watermark_margin" th:value="${settings['watermark_margin']}"></label>
+            <label>最小应用宽度（px，小于则跳过，0 为不限制）
+                <input type="number" min="0" name="watermark_target_min_width" th:value="${settings['watermark_target_min_width']}"></label>
+            <label>最小应用高度（px，小于则跳过，0 为不限制）
+                <input type="number" min="0" name="watermark_target_min_height" th:value="${settings['watermark_target_min_height']}"></label>
+            <label class="checkbox">
+                <input type="checkbox" name="watermark_enable_guest" value="1" th:checked="${settings['watermark_enable_guest'] == '1'}">
+                游客上传加水印
+            </label>
+            <label class="checkbox">
+                <input type="checkbox" name="watermark_enable_user" value="1" th:checked="${settings['watermark_enable_user'] == '1'}">
+                普通用户上传加水印
+            </label>
+            <label class="checkbox">
+                <input type="checkbox" name="watermark_enable_admin" value="1" th:checked="${settings['watermark_enable_admin'] == '1'}">
+                管理员上传加水印
+            </label>
+            <label class="checkbox">
+                <input type="checkbox" name="watermark_enable_file_gif" value="1" th:checked="${settings['watermark_enable_file_gif'] == '1'}">
+                GIF 图片也加水印（会失去动画）
+            </label>
+
+            <p class="muted">提示：未勾选的开关保存后会被视为关闭。</p>
+            <button class="btn btn-accent" type="submit">保存设置</button>
+        </form>
+    </div>
+</section>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(${'存储图片 - ' + storage.storageName})}"></head>
+<body>
+<header th:replace="~{fragments/layout :: topbar}"></header>
+<main th:replace="~{fragments/layout :: flash}"></main>
+
+<section class="container">
+    <div class="section-head">
+        <h1><i class="fa-solid fa-database"></i>
+            <span th:text="${storage.storageName}"></span>
+            <span class="tag" th:text="${service}"></span>
+        </h1>
+        <a class="btn btn-ghost btn-sm" th:href="@{/admin/storages}"><i class="fa-solid fa-arrow-left"></i> 返回存储列表</a>
+    </div>
+
+    <div class="grid">
+        <a class="img-card" th:each="img : ${images}" th:href="@{'/image/' + ${img.idEncoded}}">
+            <img th:src="${img.thumbUrl}" th:alt="${img.imageTitle}" loading="lazy">
+            <div class="img-overlay">
+                <span class="img-title" th:text="${#strings.abbreviate(img.imageTitle != null ? img.imageTitle : img.imageOriginalFilename, 26)}"></span>
+                <span class="img-views"><i class="fa-solid fa-eye"></i> <span th:text="${img.imageViews}"></span></span>
+            </div>
+        </a>
+    </div>
+    <p class="empty muted" th:if="${#lists.isEmpty(images)}">该存储暂无图片</p>
+
+    <nav class="pagination" th:if="${totalPages > 1}">
+        <a th:if="${currentPage > 1}"
+           th:href="@{/admin/storages/{sid}/images(sid=${storage.storageId}, page=${currentPage - 1})}">← 上一页</a>
+        <span class="muted" th:text="${currentPage} + ' / ' + ${totalPages}"></span>
+        <a th:if="${currentPage < totalPages}"
+           th:href="@{/admin/storages/{sid}/images(sid=${storage.storageId}, page=${currentPage + 1})}">下一页 →</a>
+    </nav>
+</section>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+<script th:replace="~{fragments/layout :: scripts}"></script>
+</body>
+</html>

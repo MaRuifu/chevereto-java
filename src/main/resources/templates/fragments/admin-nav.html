@@ -1,0 +1,11 @@
+<aside class="settings-menu" th:fragment="nav(active)" xmlns:th="http://www.thymeleaf.org">
+    <a class="settings-menu-item" th:classappend="${active == 'dashboard'} ? 'active'" th:href="@{/admin}"><i class="fa-solid fa-gauge-high"></i> 状态</a>
+    <a class="settings-menu-item" th:classappend="${active == 'settings'} ? 'active'" th:href="@{/admin/settings}"><i class="fa-solid fa-gear"></i> 设置</a>
+    <a class="settings-menu-item" th:classappend="${active == 'email'} ? 'active'" th:href="@{/admin/email}"><i class="fa-solid fa-envelope"></i> 邮箱</a>
+    <a class="settings-menu-item" th:classappend="${active == 'content'} ? 'active'" th:href="@{/admin/content}"><i class="fa-solid fa-flag"></i> 内容 / NSFW</a>
+    <a class="settings-menu-item" th:classappend="${active == 'flood'} ? 'active'" th:href="@{/admin/flood}"><i class="fa-solid fa-faucet"></i> 洪水保护</a>
+    <a class="settings-menu-item" th:classappend="${active == 'users'} ? 'active'" th:href="@{/admin/users}"><i class="fa-solid fa-users"></i> 用户</a>
+    <a class="settings-menu-item" th:classappend="${active == 'storages'} ? 'active'" th:href="@{/admin/storages}"><i class="fa-solid fa-database"></i> 外部存储</a>
+    <a class="settings-menu-item" th:classappend="${active == 'categories'} ? 'active'" th:href="@{/admin/categories}"><i class="fa-solid fa-tags"></i> 分类</a>
+    <a class="settings-menu-item" th:classappend="${active == 'bans'} ? 'active'" th:href="@{/admin/bans}"><i class="fa-solid fa-ban"></i> IP 封禁</a>
+</aside>

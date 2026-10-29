@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(${profile.userUsername})}"></head>
+<body>
+<header th:replace="~{fragments/layout :: topbar}"></header>
+<main th:replace="~{fragments/layout :: flash}"></main>
+
+<!-- Peafowl 风格用户页：封面 + 头像 + 统计 + tabs -->
+<div class="user-cover"></div>
+<section class="container user-page">
+    <div class="user-head">
+        <span class="user-avatar xl"><i class="fa-solid fa-user-circle"></i></span>
+        <div class="user-head-info">
+            <h1 th:text="${profile.userUsername}"></h1>
+            <p class="muted" th:if="${profile.userName != null and !profile.userName.isEmpty()}" th:text="${profile.userName}"></p>
+            <p class="muted" th:if="${profile.userBio != null and !profile.userBio.isEmpty()}" th:text="${profile.userBio}"></p>
+        </div>
+        <div class="user-head-stats">
+            <div class="stat"><span th:text="${profile.userImageCount}"></span><span class="muted">图片</span></div>
+            <div class="stat"><span th:text="${profile.userAlbumCount}"></span><span class="muted">专辑</span></div>
+        </div>
+    </div>
+
+    <div class="tabs">
+        <a class="tab" th:classappend="${tab == 'images'} ? 'active'"
+           th:href="@{/u/{username}(username=${profileUsername})}"><i class="fa-solid fa-images"></i> 图片</a>
+        <a class="tab" th:classappend="${tab == 'albums'} ? 'active'"
+           th:href="@{/u/{username}(username=${profileUsername}, tab='albums')}"><i class="fa-solid fa-folder-open"></i> 专辑</a>
+    </div>
+
+    <!-- 图片 tab -->
+    <th:block th:if="${tab == 'images'}">
+        <div class="grid">
+            <a class="img-card" th:each="img : ${images}"
+               th:href="@{'/image/' + ${img.idEncoded}}"
+               th:classappend="${nsfwBlur and img.imageNsfw} ? ' is-nsfw'">
+                <img th:src="${img.thumbUrl}" th:alt="${img.imageTitle}" loading="lazy">
+                <div class="img-overlay">
+                    <span class="img-title" th:text="${#strings.abbreviate(img.imageTitle != null ? img.imageTitle : img.imageOriginalFilename, 26)}"></span>
+                </div>
+            </a>
+        </div>
+        <p class="empty muted" th:if="${#lists.isEmpty(images)}">暂无公开图片</p>
+        <nav class="pagination" th:if="${totalPages > 1}">
+            <a th:if="${currentPage > 1}"
+               th:href="@{/u/{username}(username=${profileUsername}, page=${currentPage - 1})}">← 上一页</a>
+            <span class="muted" th:text="${currentPage} + ' / ' + ${totalPages}"></span>
+            <a th:if="${currentPage < totalPages}"
+               th:href="@{/u/{username}(username=${profileUsername}, page=${currentPage + 1})}">下一页 →</a>
+        </nav>
+    </th:block>
+
+    <!-- 专辑 tab -->
+    <th:block th:if="${tab == 'albums'}">
+        <div class="album-row" th:if="${!#lists.isEmpty(albums)}">
+            <a class="album-card card" th:each="al : ${albums}" th:href="@{'/album/' + ${al.idEncoded}}">
+                <div class="album-cover">
+                    <img th:if="${al.coverUrl != null}" th:src="${al.coverUrl}" alt="">
+                    <i class="fa-solid fa-folder" th:if="${al.coverUrl == null}"></i>
+                </div>
+                <div class="album-meta">
+                    <span th:text="${al.albumName}"></span>
+                    <span class="muted" th:text="${al.albumImageCount} + ' 张'"></span>
+                </div>
+            </a>
+        </div>
+        <p class="empty muted" th:if="${#lists.isEmpty(albums)}">暂无公开专辑</p>
+
+        <!-- 创建专辑（本人） -->
+        <details class="edit-panel" th:if="${me != null and me.userId == profile.userId}">
+            <summary><i class="fa-solid fa-plus"></i> 创建专辑</summary>
+            <form th:action="@{/album/create}" method="post" class="stack-form">
+                <label>名称 <input type="text" name="name" required></label>
+                <label>描述 <textarea name="description" rows="2"></textarea></label>
+                <div class="form-row">
+                    <label>隐私
+                        <select name="privacy" id="album-privacy" onchange="toggleAlbumPwd()">
+                            <option value="public">公开</option>
+                            <option value="private_but_link">链接可见</option>
+                            <option value="private">私密</option>
+                            <option value="password">密码保护</option>
+                        </select>
+                    </label>
+                    <label id="album-pwd-label" hidden>专辑密码 <input type="password" name="password"></label>
+                </div>
+                <button class="btn btn-accent" type="submit">创建</button>
+            </form>
+        </details>
+    </th:block>
+</section>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+<script th:replace="~{fragments/layout :: scripts}"></script>
+</body>
+</html>

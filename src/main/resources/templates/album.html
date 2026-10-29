@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(${album.albumName})}"></head>
+<body>
+<header th:replace="~{fragments/layout :: topbar}"></header>
+<main th:replace="~{fragments/layout :: flash}"></main>
+
+<section class="container">
+    <div class="section-head">
+        <h1><i class="fa-solid fa-folder-open"></i> <span th:text="${album.albumName}"></span></h1>
+        <span class="privacy-tag" th:switch="${album.albumPrivacy}">
+            <th:block th:case="'public'"><i class="fa-solid fa-earth-americas"></i> 公开</th:block>
+            <th:block th:case="'private_but_link'"><i class="fa-solid fa-link"></i> 链接可见</th:block>
+            <th:block th:case="'private'"><i class="fa-solid fa-lock"></i> 私密</th:block>
+            <th:block th:case="'password'"><i class="fa-solid fa-key"></i> 密码保护</th:block>
+            <th:block th:case="*"><i class="fa-solid fa-earth-americas"></i> 公开</th:block>
+        </span>
+        <span class="muted" th:text="'共 ' + ${album.albumImageCount} + ' 张 · ' + ${album.albumViews} + ' 次浏览'"></span>
+    </div>
+    <p class="muted" th:if="${album.albumDescription != null and !album.albumDescription.isEmpty()}"
+       th:text="${album.albumDescription}"></p>
+    <p class="muted">创建者：
+        <a th:if="${album.user != null}" th:href="@{'/u/' + ${album.user.userUsername}}" th:text="${album.user.userUsername}"></a>
+        <span th:if="${album.user == null}">游客</span>
+    </p>
+
+    <div class="grid">
+        <a class="img-card" th:each="img : ${images}" th:href="@{'/image/' + ${img.idEncoded}}"
+           th:classappend="${nsfwBlur and img.imageNsfw} ? ' is-nsfw'">
+            <img th:src="${img.thumbUrl}" th:alt="${img.imageTitle}" loading="lazy">
+            <div class="img-overlay">
+                <span class="img-title" th:text="${#strings.abbreviate(img.imageTitle != null ? img.imageTitle : img.imageOriginalFilename, 26)}"></span>
+            </div>
+        </a>
+    </div>
+    <p class="empty muted" th:if="${#lists.isEmpty(images)}">该专辑还没有图片</p>
+
+    <nav class="pagination" th:if="${images.totalPages > 1}">
+        <a th:if="${currentPage > 1}" th:href="@{/album/{id}(id=${album.idEncoded}, page=${currentPage - 1})}">← 上一页</a>
+        <span class="muted" th:text="${currentPage} + ' / ' + ${images.totalPages}"></span>
+        <a th:if="${currentPage < images.totalPages}" th:href="@{/album/{id}(id=${album.idEncoded}, page=${currentPage + 1})}">下一页 →</a>
+    </nav>
+
+    <details th:if="${canManage}" class="edit-panel">
+        <summary><i class="fa-solid fa-pen"></i> 编辑专辑</summary>
+        <form th:action="@{'/album/' + ${album.idEncoded} + '/edit'}" method="post" class="stack-form">
+            <label>名称 <input type="text" name="name" th:value="${album.albumName}"></label>
+            <label>描述 <textarea name="description" rows="2" th:text="${album.albumDescription}"></textarea></label>
+            <div class="form-row">
+                <label>隐私
+                    <select name="privacy">
+                        <option value="public" th:selected="${album.albumPrivacy == 'public'}">公开</option>
+                        <option value="private_but_link" th:selected="${album.albumPrivacy == 'private_but_link'}">链接可见</option>
+                        <option value="private" th:selected="${album.albumPrivacy == 'private'}">私密</option>
+                        <option value="password" th:selected="${album.albumPrivacy == 'password'}">密码保护</option>
+                    </select>
+                </label>
+                <label>新密码（仅密码保护时）<input type="password" name="password" placeholder="留空保持不变"></label>
+            </div>
+            <button class="btn btn-accent" type="submit">保存</button>
+        </form>
+        <form th:action="@{'/album/' + ${album.idEncoded} + '/delete'}" method="post"
+              onsubmit="return confirm('删除专辑后图片不会被删除，确定？')">
+            <button class="btn btn-danger" type="submit"><i class="fa-solid fa-trash"></i> 删除专辑</button>
+        </form>
+    </details>
+</section>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+<script th:replace="~{fragments/layout :: scripts}"></script>
+</body>
+</html>

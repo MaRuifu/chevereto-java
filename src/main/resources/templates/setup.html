@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>首次安装 - 选择数据库</title>
+    <link rel="icon" type="image/png" th:href="@{/assets/favicon.png}">
+    <link rel="stylesheet" th:href="@{/vendor/fontawesome/css/all.min.css}">
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+    <style>
+        .setup-wrap { max-width: 720px; margin: 0 auto; padding: 36px 16px 80px; }
+        .setup-card { padding: 22px; margin-bottom: 18px; }
+        .setup-card h2 { font-size: 17px; margin: 0 0 8px; display: flex; align-items: center; gap: 8px; }
+        .setup-card h2 .tag { font-size: 12px; font-weight: 400; color: var(--accent); border: 1px solid var(--accent); border-radius: 999px; padding: 1px 8px; }
+        .setup-card p { margin: 0 0 16px; }
+        code { background: var(--bg); padding: 1px 5px; border-radius: 4px; font-size: 12px; }
+    </style>
+</head>
+<body>
+<header class="topbar">
+    <div class="topbar-inner">
+        <a class="topbar-logo" href="/">
+            <i class="fa-solid fa-camera-retro"></i>
+            <span>chevereto-java</span>
+        </a>
+    </div>
+</header>
+
+<main class="setup-wrap">
+    <h1 style="font-size:23px;margin:0 0 8px;">首次安装</h1>
+    <p class="muted" style="margin:0 0 26px;">
+        为本站选择数据库，只需选择一次。配置写入 <code>./data/instance.properties</code>，之后启动不再询问。
+    </p>
+
+    <div class="alert alert-error" th:if="${error != null}">
+        <i class="fa-solid fa-circle-exclamation"></i> <span th:text="${error}"></span>
+    </div>
+
+    <div class="card setup-card">
+        <h2><i class="fa-solid fa-hard-drive"></i> 内置 H2 <span class="tag">推荐</span></h2>
+        <p class="muted">
+            数据存于 <code th:text="${h2Path}"></code>，零依赖、立刻可用。
+            适合单机与小流量站点；随程序目录一起备份即可。
+        </p>
+        <form method="post" action="/setup" class="stack-form">
+            <input type="hidden" name="type" value="h2">
+            <button class="btn btn-accent" type="submit">
+                <i class="fa-solid fa-bolt"></i> 使用内置 H2 并开始
+            </button>
+        </form>
+    </div>
+
+    <div class="card setup-card">
+        <h2><i class="fa-solid fa-database"></i> MySQL</h2>
+        <p class="muted">
+            指向已有 Chevereto 生产库即可无缝接管：只补建缺失的表，不改动、不清空、不覆盖任何现有数据。
+            目标库需事先创建：<code>CREATE DATABASE 库名 DEFAULT CHARSET utf8mb4;</code>
+        </p>
+        <form method="post" action="/setup" class="stack-form">
+            <input type="hidden" name="type" value="mysql">
+            <div class="form-row">
+                <label>主机 <input type="text" name="host" th:value="${host}" required></label>
+                <label>端口 <input type="text" name="port" th:value="${port}" required></label>
+            </div>
+            <label>数据库名 <input type="text" name="database" th:value="${database}" required></label>
+            <div class="form-row">
+                <label>用户名 <input type="text" name="username" th:value="${username}" required></label>
+                <label>密码 <input type="password" name="password" autocomplete="new-password"></label>
+            </div>
+            <button class="btn btn-accent" type="submit">
+                <i class="fa-solid fa-plug-circle-check"></i> 测试连接并使用 MySQL
+            </button>
+        </form>
+    </div>
+
+    <p class="muted" style="font-size:12px;margin-top:24px;">
+        两种方式都会建立 <code>chv_</code> 前缀的 29 张表，表名 / 列名 / 类型与 Chevereto 官方生产结构逐列一致，可与原版互相迁移。
+    </p>
+</main>
+</body>
+</html>

@@ -1,0 +1,61 @@
+# chevereto-java —— 一条命令起一个图床（默认内置 H2，零外部依赖）
+#
+#   docker compose up -d --build          # 只用内置 H2，数据在 app-data 卷里
+#   docker compose --profile mysql up -d  # 额外拉起 MySQL，首次进 /setup 选 MySQL
+#
+# 变量都可写在同目录 .env 里（参考 .env.example）
+
+services:
+  app:
+    build: .
+    image: chevereto-java:latest
+    container_name: chevereto-java
+    ports:
+      - "${APP_PORT:-8080}:8080"
+    environment:
+      TZ: "${TZ:-Asia/Shanghai}"
+      JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=75 -Djava.awt.headless=true -Dfile.encoding=UTF-8"
+      # 直接连外部 MySQL 时，把下面三行取消注释（也可以首次进 /setup 手填，效果一样）
+      # 注意：这里一旦指定就会被写入 instance.properties，之后不带参数启动也沿用
+      # SPRING_DATASOURCE_URL: "jdbc:mysql://mysql:3306/${MYSQL_DATABASE:-chevereto}?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true"
+      # SPRING_DATASOURCE_USERNAME: "${MYSQL_USER:-chevereto}"
+      # SPRING_DATASOURCE_PASSWORD: "${MYSQL_PASSWORD:-chevereto123}"
+      # 迁移原版 Chevereto 时，如需解密原库里的 SMTP 密码，填原站 env 里同一串
+      # CHEVERETO_ENCRYPTION_KEY: ""
+    volumes:
+      # 命名卷：instance.properties / 内置 H2 / 上传的图片都在 /app/data
+      - app-data:/app/data
+      # 想直接用宿主机目录（方便备份、或直接挂原版 images 目录）就换成下面这行，
+      # 并确保宿主机目录属主是 10001（容器里以非 root 运行）：
+      #   mkdir -p ./data && sudo chown -R 10001:10001 ./data
+      # - ./data:/app/data
+    restart: unless-stopped
+    # healthcheck 继承自 Dockerfile，/app/data 就绪后容器会显示 healthy
+
+  # 可选服务：只有加 --profile mysql 才会启动
+  mysql:
+    image: mysql:8.4
+    profiles: ["mysql"]
+    container_name: chevereto-java-mysql
+    environment:
+      MYSQL_DATABASE: "${MYSQL_DATABASE:-chevereto}"
+      MYSQL_USER: "${MYSQL_USER:-chevereto}"
+      MYSQL_PASSWORD: "${MYSQL_PASSWORD:-chevereto123}"
+      MYSQL_ROOT_PASSWORD: "${MYSQL_ROOT_PASSWORD:-root123}"
+      TZ: "${TZ:-Asia/Shanghai}"
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-p${MYSQL_ROOT_PASSWORD:-root123}"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    restart: unless-stopped
+
+volumes:
+  app-data:
+  mysql-data:

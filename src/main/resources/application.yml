@@ -1,0 +1,62 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: chevereto-java
+  servlet:
+    multipart:
+      max-file-size: 100MB
+      max-request-size: 200MB
+  # 数据源不在 yml 里写死：
+  # 由 ./data/instance.properties（首次安装向导生成）决定用内置 H2 还是外部 MySQL，
+  # 见 com.chevereto.java.config.DataSourceConfig / InstanceConfig
+  thymeleaf:
+    cache: false
+  # 建表脚本改为程序内按方言执行（schema-h2.sql / schema-mysql.sql），
+  # 因此关闭 Spring 自带的 schema.sql 自动执行，避免重复执行与方言错配
+  sql:
+    init:
+      mode: never
+
+# MyBatis：纯注解 SQL，无 XML；下划线列名自动映射驼峰字段
+mybatis:
+  configuration:
+    map-underscore-to-camel-case: true
+
+app:
+  # 本地存储默认根目录（相对/绝对路径均可）。
+  # 无缝迁移时指向现有 Chevereto 的 images 目录（绝对路径）
+  local-storage-root: ./data/uploads
+
+# ---- ⭐ 无缝迁移现有 Chevereto（MySQL + 图片目录直连，零数据库改动）----
+# 不改原库任何表结构和数据、不复制图片，启动即可用；老图片直链 /images/**、
+# 详情页 /image/{老ID}、用户密码全部保持兼容。
+#
+# 方式一（推荐）：首次启动打开 http://localhost:8080/setup ，选择 MySQL 并填写连接信息。
+#   向导会：测试连接 → 补建缺失的表（CREATE TABLE IF NOT EXISTS）→
+#   检测到库里已有数据则跳过全部初始化（不建管理员、不写设置）
+#
+# 方式二：手写 ./data/instance.properties（向导生成的也是这个文件）
+#   db.type=mysql
+#   db.url=jdbc:mysql://127.0.0.1:3306/chevereto?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+#   db.username=root
+#   db.password=你的密码
+#
+# 图片目录仍用启动参数或环境变量指定：
+#   --app.local-storage-root=/path/to/chevereto/images
+#   环境变量：APP_LOCAL_STORAGE_ROOT
+#
+# 说明：
+#  - MyBatis 纯注解 SQL：不含 Hibernate，不存在任何 ddl-auto
+#  - 建表脚本按方言分流（schema-h2.sql / schema-mysql.sql），全部是
+#    CREATE TABLE IF NOT EXISTS，对已有库零改动（不会 DROP、不会 ALTER）
+#  - 首次连上已有库时不会创建管理员/设置/存储（检测到数据自动跳过）
+#  - 老图片的 datefolder 路径（Y/m/d/文件名.扩展名）按原版规则从
+#    image_date 推导，image_path 为 NULL 也能正常显示
+#  - 水印沿用原库 chv_settings 中的 watermark_* 设置；水印图默认用 jar 内置的那张，
+#    想自定义就把 watermark_image 设成图片的绝对路径（不再依赖原版 content 目录）
+
+logging:
+  level:
+    root: INFO

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('用户管理')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: topbar}"></header>
+<main th:replace="~{fragments/layout :: flash}"></main>
+
+<section class="container settings-page">
+        <aside th:replace="~{fragments/admin-nav :: nav('users')}"></aside>
+
+    <div class="settings-content">
+        <table class="table">
+            <thead><tr><th>ID</th><th>用户名</th><th>邮箱</th><th>管理员</th><th>状态</th><th>图片</th><th>注册时间</th><th>操作</th></tr></thead>
+            <tbody>
+            <tr th:each="u : ${users.content}">
+                <td th:text="${u.userId}"></td>
+                <td><a th:href="@{'/u/' + ${u.userUsername}}" th:text="${u.userUsername}"></a></td>
+                <td th:text="${u.userEmail}"></td>
+                <td class="nowrap">
+                    <form th:action="@{'/admin/users/' + ${u.userId} + '/role'}" method="post" class="inline-form">
+                        <input type="hidden" name="admin" th:value="${!u.isUserIsAdmin()}">
+                        <button class="btn btn-ghost btn-sm" type="submit"
+                                th:text="${u.isUserIsAdmin()} ? '取消管理员' : '设为管理员'"></button>
+                    </form>
+                </td>
+                <td class="nowrap">
+                    <span class="tag" th:classappend="${u.userStatus == 'valid'} ? 'tag-ok' : 'tag-bad'"
+                          th:text="${u.userStatus == 'valid'} ? '正常' : '封禁'"></span>
+                </td>
+                <td th:text="${u.userImageCount}"></td>
+                <td th:text="${#temporals.format(u.userDate, 'yyyy-MM-dd')}"></td>
+                <td class="nowrap">
+                    <form th:action="@{'/admin/users/' + ${u.userId} + '/toggle'}" method="post" class="inline-form">
+                        <button class="btn btn-ghost btn-sm" type="submit"
+                                th:text="${u.userStatus == 'valid'} ? '封禁' : '解封'"></button>
+                    </form>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+
+        <nav class="pagination" th:if="${users.totalPages > 1}">
+            <a th:if="${currentPage > 1}" th:href="@{/admin/users(page=${currentPage - 1})}">← 上一页</a>
+            <span class="muted" th:text="${currentPage} + ' / ' + ${users.totalPages}"></span>
+            <a th:if="${currentPage < users.totalPages}" th:href="@{/admin/users(page=${currentPage + 1})}">下一页 →</a>
+        </nav>
+    </div>
+</section>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

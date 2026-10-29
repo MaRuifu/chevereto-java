@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(${image.imageTitle != null ? image.imageTitle : image.imageName})}"></head>
+<body>
+<header th:replace="~{fragments/layout :: topbar}"></header>
+<main th:replace="~{fragments/layout :: flash}"></main>
+
+<!-- Peafowl 风格查看器：左大图 + 右侧栏 -->
+<section class="viewer">
+    <div class="viewer-canvas" th:classappend="${image.imageNsfw} ? 'nsfw'">
+        <img id="viewer-img" th:src="${image.url}" th:alt="${image.imageTitle}">
+        <div class="nsfw-cover" th:if="${image.imageNsfw}">
+            <p><i class="fa-solid fa-triangle-exclamation"></i> 该图片被标记为敏感内容</p>
+            <button class="btn btn-accent" onclick="revealNsfw()">显示图片</button>
+        </div>
+    </div>
+
+    <aside class="viewer-side">
+        <!-- 上传者卡片 -->
+        <div class="side-block uploader-card">
+            <span class="user-avatar big"><i class="fa-solid fa-user-circle"></i></span>
+            <div class="uploader-info">
+                <a class="uploader-name" th:if="${image.user != null}"
+                   th:href="@{'/u/' + ${image.user.userUsername}}" th:text="${image.user.userUsername}"></a>
+                <span class="uploader-name" th:if="${image.user == null}">游客</span>
+                <span class="muted" th:text="${#temporals.format(image.imageDateGmt, 'yyyy-MM-dd HH:mm')} + ' UTC'"></span>
+            </div>
+            <div class="uploader-actions" th:if="${canManage}">
+                <a class="btn-icon" th:href="${image.url}" download th:title="'下载'"><i class="fa-solid fa-download"></i></a>
+                <form th:action="@{'/image/' + ${image.idEncoded} + '/delete'}" method="post" class="inline-form"
+                      onsubmit="return confirm('确定删除这张图片？此操作不可恢复！')">
+                    <button class="btn-icon btn-danger-icon" type="submit" title="删除"><i class="fa-solid fa-trash"></i></button>
+                </form>
+            </div>
+        </div>
+
+        <!-- 删图链接：仅上传成功的那次渲染存在（口令明文只此一次），之后库里只有 bcrypt 哈希。
+             XHR 上传走的是 JSON 响应、没有 flash，由下面的脚本从 sessionStorage 回填。 -->
+        <div class="side-block alert-warning" th:if="${deleteUrl != null}" style="padding:14px;">
+            <p style="margin:0 0 8px;"><i class="fa-solid fa-key"></i> <strong>你的删图链接（只显示这一次）</strong></p>
+            <p class="muted" style="margin:0 0 8px;font-size:12px;">
+                请立即保存。凭这条链接任何人都能删除这张图片（无需登录），关闭页面后就再也拿不到了。
+            </p>
+            <input id="delete-url-box" class="mono" type="text" readonly th:value="${deleteUrl}"
+                   style="width:100%;margin-bottom:8px;"
+                   onclick="this.select()">
+            <button class="btn btn-ghost btn-block" type="button" onclick="copyDeleteUrl()">
+                <i class="fa-solid fa-copy"></i> 复制删图链接
+            </button>
+        </div>
+
+        <!-- 游客图说明：只在看不到删图链接时出现（没链接 = 删不掉，说清楚免得用户到处找） -->
+        <div class="side-block" id="guest-delete-tip" th:if="${image.user == null}" hidden>
+            <p class="muted" style="margin:0;font-size:12px;">
+                <i class="fa-solid fa-circle-info"></i>
+                游客上传的图片不绑定账号：删除只能用上传成功后返回的那条「删图链接」（形如
+                <span class="mono">/image/&lt;ID&gt;/delete/&lt;口令&gt;</span>），本站不保存口令明文，丢了就无法删除。
+            </p>
+        </div>
+
+        <!-- 统计 -->
+        <div class="side-block stats-row">
+            <div class="stat"><span th:text="${image.imageViews}"></span><span class="muted"><i class="fa-solid fa-eye"></i> 浏览</span></div>
+            <div class="stat"><span th:text="${image.imageLikes}"></span><span class="muted"><i class="fa-solid fa-heart"></i> 赞</span></div>
+            <div class="stat"><span th:text="${image.imageSize >= 1048576 ?
+                #numbers.formatDecimal(image.imageSize / 1048576.0, 1, 2) + ' MB' :
+                #numbers.formatDecimal(image.imageSize / 1024.0, 1, 1) + ' KB'}"></span><span class="muted">大小</span></div>
+        </div>
+
+        <!-- 标题/描述 -->
+        <div class="side-block">
+            <h1 class="viewer-title" th:text="${image.imageTitle != null ? image.imageTitle : image.imageName}"></h1>
+            <p class="viewer-desc muted" th:if="${image.imageDescription != null and !image.imageDescription.isEmpty()}"
+               th:text="${image.imageDescription}"></p>
+            <dl class="meta-list">
+                <div><dt>图片 ID</dt>
+                    <dd><span class="mono" th:text="${image.idEncoded}"></span><span class="muted" th:text="'（#' + ${image.imageId} + '）'"></span></dd></div>
+                <div th:if="${image.category != null}"><dt>分类</dt>
+                    <dd><a th:href="@{/explore(category=${image.category.categoryUrlKey})}" th:text="${image.category.categoryName}"></a></dd></div>
+                <div th:if="${image.album != null}"><dt>所属专辑</dt>
+                    <dd><a th:href="@{'/album/' + ${image.album.idEncoded}}" th:text="${image.album.albumName}"></a></dd></div>
+                <div><dt>尺寸</dt><dd th:text="${image.imageWidth} + ' × ' + ${image.imageHeight}"></dd></div>
+                <div><dt>大小</dt>
+                    <dd th:text="${image.imageSize >= 1048576 ?
+                        #numbers.formatDecimal(image.imageSize / 1048576.0, 1, 2) + ' MB' :
+                        #numbers.formatDecimal(image.imageSize / 1024.0, 1, 1) + ' KB'}"></dd></div>
+                <div><dt>格式</dt><dd th:text="${#strings.toUpperCase(image.imageExtension)}"></dd></div>
+                <div><dt>原文件名</dt><dd class="mono" th:text="${image.imageOriginalFilename}"></dd></div>
+                <div><dt>上传时间</dt><dd th:text="${#temporals.format(image.imageDate, 'yyyy-MM-dd HH:mm:ss')}"></dd></div>
+                <!-- 以下仅所有者/管理员可见（与原版一致） -->
+                <div th:if="${canManage}"><dt>上传者 IP</dt>
+                    <dd class="mono" th:text="${image.imageUploaderIp != null and !image.imageUploaderIp.isBlank() ? image.imageUploaderIp : '未知'}"></dd></div>
+                <div th:if="${canManage}"><dt>数字 ID</dt><dd th:text="'#' + ${image.imageId}"></dd></div>
+                <div th:if="${canManage}"><dt>UTC 时间</dt>
+                    <dd th:text="${#temporals.format(image.imageDateGmt, 'yyyy-MM-dd HH:mm:ss')}"></dd></div>
+                <div th:if="${canManage}"><dt>MD5</dt><dd class="mono" th:text="${image.imageMd5}"></dd></div>
+                <div th:if="${canManage}"><dt>存储模式</dt><dd th:text="${image.imageStorageMode}"></dd></div>
+                <div th:if="${canManage}"><dt>存储路径</dt><dd class="mono" th:text="${image.diskPath}"></dd></div>
+            </dl>
+        </div>
+
+        <!-- 嵌入代码（原版查看器签名功能） -->
+        <div class="side-block">
+            <div class="tabs small-tabs" id="embed-tabs">
+                <button class="tab active" data-embed="html-full">HTML 完整</button>
+                <button class="tab" data-embed="html-thumb">HTML 缩略</button>
+                <button class="tab" data-embed="markdown">Markdown</button>
+                <button class="tab" data-embed="bbcode">BBCode</button>
+                <button class="tab" data-embed="direct">直链</button>
+            </div>
+            <textarea id="embed-code" rows="3" readonly></textarea>
+            <button class="btn btn-ghost btn-block" onclick="copyEmbed()"><i class="fa-solid fa-copy"></i> 复制代码</button>
+        </div>
+
+        <!-- 所有者编辑 -->
+        <div class="side-block" th:if="${canManage}">
+            <details>
+                <summary><i class="fa-solid fa-pen"></i> 编辑图片</summary>
+                <form th:action="@{'/image/' + ${image.idEncoded} + '/edit'}" method="post" class="stack-form">
+                    <label>标题 <input type="text" name="title" th:value="${image.imageTitle}"></label>
+                    <label>描述 <textarea name="description" rows="2" th:text="${image.imageDescription}"></textarea></label>
+                    <div class="form-row">
+                        <label>分类
+                            <select name="categoryId">
+                                <option value="0">无</option>
+                                <option th:each="c : ${categories}" th:value="${c.categoryId}"
+                                        th:text="${c.categoryName}"
+                                        th:selected="${image.category != null and image.category.categoryId == c.categoryId}"></option>
+                            </select>
+                        </label>
+                    </div>
+                    <label class="checkbox"><input type="checkbox" name="nsfw" th:checked="${image.imageNsfw}"
+                                                   th:disabled="${!nsfwEditable}"> 敏感内容</label>
+                    <p class="muted" th:unless="${nsfwEditable}" style="font-size:12px;margin:-6px 0 0;">
+                        <i class="fa-solid fa-lock"></i> 站点已锁定 NSFW 标记编辑，仅管理员可修改
+                    </p>
+                    <label>移入专辑
+                        <select name="albumId">
+                            <option value="0">不放入专辑</option>
+                            <option th:each="a : ${myAlbums}" th:value="${a.albumId}" th:text="${a.albumName}"
+                                    th:selected="${image.album != null and image.album.albumId == a.albumId}"></option>
+                        </select>
+                    </label>
+                    <button class="btn btn-accent" type="submit">保存修改</button>
+                </form>
+            </details>
+        </div>
+    </aside>
+</section>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+<!-- __IMAGE__ 必须在 app.js 之前定义（app.js 为立即执行脚本） -->
+<script th:inline="javascript">
+    // 外部存储（S3/OSS/COS 等）返回的已是绝对地址，只有站内相对路径才拼 origin
+    function __absUrl(u) {
+        return /^https?:\/\//i.test(u) ? u : location.origin + u;
+    }
+    window.__IMAGE__ = {
+        idEncoded: [[${image.idEncoded}]],
+        url: __absUrl([[${image.url}]]),
+        thumbUrl: __absUrl([[${image.thumbUrl}]]),
+        title: [[${image.imageTitle != null ? image.imageTitle : image.imageName}]]
+    };
+</script>
+<script>
+    // 复制删图链接（口令是明文一次性的，走 http 时 navigator.clipboard 不可用，需 fallback）
+    function copyDeleteUrl() {
+        var el = document.getElementById('delete-url-box');
+        if (!el) return;
+        el.focus();
+        el.select();
+        var done = function () { el.blur(); alert('删图链接已复制，请妥善保存'); };
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(el.value).then(done, function () { document.execCommand('copy'); done(); });
+        } else {
+            document.execCommand('copy');
+            done();
+        }
+    }
+
+    // XHR 上传后跳到详情页：没有 flash（口令在 JSON 响应里），从 sessionStorage 取回来补显。
+    document.addEventListener('DOMContentLoaded', function () {
+        if (!document.getElementById('delete-url-box')) {
+            var id = window.__IMAGE__ && window.__IMAGE__.idEncoded;
+            var link = null;
+            try { link = id ? sessionStorage.getItem('chv_del_' + id) : null; } catch (e) { /* 隐私模式 */ }
+            if (link) renderDeleteHint(link);
+        }
+        // 既没有 flash 也没有本地缓存：这张图不是本次会话上传的，说明口令无从找回
+        var tip = document.getElementById('guest-delete-tip');
+        if (tip && !document.getElementById('delete-url-box')) tip.hidden = false;
+    });
+
+    function renderDeleteHint(link) {
+        var side = document.querySelector('.viewer-side');
+        if (!side) return;
+        var wrap = document.createElement('div');
+        wrap.className = 'side-block alert-warning';
+        wrap.style.padding = '14px';
+        wrap.innerHTML =
+            '<p style="margin:0 0 8px;"><i class="fa-solid fa-key"></i> <strong>你的删图链接（只显示这一次）</strong></p>' +
+            '<p class="muted" style="margin:0 0 8px;font-size:12px;">请立即保存。凭这条链接任何人都能删除这张图片（无需登录），关闭页面后就再也拿不到了。</p>' +
+            '<input id="delete-url-box" class="mono" type="text" readonly style="width:100%;margin-bottom:8px;" onclick="this.select()">' +
+            '<button class="btn btn-ghost btn-block" type="button" onclick="copyDeleteUrl()"><i class="fa-solid fa-copy"></i> 复制删图链接</button>';
+        wrap.querySelector('input').value = link;
+        side.insertBefore(wrap, side.firstChild);
+    }
+</script>
+<script th:replace="~{fragments/layout :: scripts}"></script>
+</body>
+</html>

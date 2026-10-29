@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('上传')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: topbar}"></header>
+<main th:replace="~{fragments/layout :: flash}"></main>
+
+<!-- 首页封面（背景大图随 jar 打包：static/assets/home-cover.jpg） -->
+<section class="home-cover">
+    <div class="container">
+        <div class="upload-hero">
+            <h1><i class="fa-solid fa-cloud-arrow-up"></i> 无限图片托管</h1>
+            <p class="home-cover-desc" th:text="${siteDescription}"></p>
+        </div>
+
+        <div class="upload-box card">
+        <div class="upload-tabs">
+            <button class="upload-tab active" data-tab="local" th:if="${guestAllowed or me != null}"><i class="fa-solid fa-computer"></i> 本地上传</button>
+            <button class="upload-tab" data-tab="url" th:if="${guestAllowed or me != null}"><i class="fa-solid fa-link"></i> 网页链接</button>
+            <div class="upload-tab-note" th:if="${me == null and !guestAllowed}">
+                <i class="fa-solid fa-lock"></i> 本站不允许游客上传，请先 <a th:href="@{/login}">登录</a>
+            </div>
+        </div>
+
+        <!-- 本地上传 -->
+        <div class="upload-panel" id="panel-local" th:if="${guestAllowed or me != null}">
+            <div class="dropzone" id="dropzone">
+                <input type="file" id="file-input" accept="image/*" multiple hidden>
+                <p class="dz-icon"><i class="fa-solid fa-cloud-arrow-up"></i></p>
+                <p><strong>拖拽图片到这里</strong> 或 <a href="#" id="pick">选择文件</a></p>
+                <p class="muted">支持 JPG / PNG / GIF / WebP / BMP / AVIF，单个最大 <span th:text="${maxUploadMb}"></span> MB</p>
+                <p class="muted" th:if="${me == null}" style="margin:10px 0 0;font-size:12px;">
+                    <i class="fa-solid fa-key"></i> 游客上传：上传成功后会给你一条<b>一次性删图链接</b>，
+                    删除图片只能靠它（没有账号后台可管），请当场复制保存。
+                </p>
+            </div>
+        </div>
+
+        <!-- URL 上传 -->
+        <div class="upload-panel" id="panel-url" hidden th:if="${guestAllowed or me != null}">
+            <div class="url-upload">
+                <input type="text" id="url-input" placeholder="粘贴图片直链，如 https://example.com/photo.jpg">
+                <button class="btn btn-accent" id="url-upload-btn"><i class="fa-solid fa-cloud-arrow-up"></i> 上传</button>
+            </div>
+        </div>
+
+        <!-- 上传选项 -->
+        <div class="upload-options" th:if="${guestAllowed or me != null}">
+            <label>分类
+                <select id="opt-category">
+                    <option value="0">不选择分类</option>
+                    <option th:each="c : ${categories}" th:value="${c.categoryId}" th:text="${c.categoryName}"></option>
+                </select>
+            </label>
+            <label class="checkbox" th:if="${nsfwCheckbox}"><input type="checkbox" id="opt-nsfw"> <i class="fa-solid fa-triangle-exclamation"></i> 敏感内容</label>
+        </div>
+
+        <div id="upload-progress" class="progress-wrap" hidden>
+            <div class="progress"><div class="progress-bar" id="progress-bar"></div></div>
+            <p class="muted" id="progress-text"></p>
+        </div>
+        <div id="upload-results"></div>
+        </div>
+    </div>
+</section>
+
+<section class="container upload-page">
+    <div class="section-head">
+        <h2><i class="fa-solid fa-clock-rotate-left"></i> 最新图片</h2>
+        <a th:href="@{/explore}">查看更多 →</a>
+    </div>
+    <div class="grid">
+        <a class="img-card" th:each="img : ${images}" th:href="@{'/image/' + ${img.idEncoded}}"
+           th:classappend="${nsfwBlur and img.imageNsfw} ? ' is-nsfw'">
+            <img th:src="${img.thumbUrl}" th:alt="${img.imageTitle}" loading="lazy">
+            <div class="img-overlay">
+                <span class="img-title" th:text="${#strings.abbreviate(img.imageTitle != null ? img.imageTitle : img.imageOriginalFilename, 26)}"></span>
+                <span class="img-views"><i class="fa-solid fa-eye"></i> <span th:text="${img.imageViews}"></span></span>
+            </div>
+        </a>
+    </div>
+    <p class="empty muted" th:if="${#lists.isEmpty(images)}">还没有图片，来上传第一张吧！</p>
+</section>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+<script th:replace="~{fragments/layout :: scripts}"></script>
+<script th:inline="javascript">
+    window.__UPLOAD__ = { maxMb: [[${maxUploadMb}]] };
+</script>
+</body>
+</html>

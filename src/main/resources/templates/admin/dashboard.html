@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('管理后台')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: topbar}"></header>
+<main th:replace="~{fragments/layout :: flash}"></main>
+
+<section class="container settings-page">
+    <aside th:replace="~{fragments/admin-nav :: nav('dashboard')}"></aside>
+
+    <div class="settings-content">
+        <!-- 累计统计：取自 chv_stats 的 total 行（与原版一致，非实时 COUNT） -->
+        <div class="stats-row">
+            <div class="card stat">
+                <span class="stat-num" th:text="${#numbers.formatInteger(totals['stat_users'], 1, 'COMMA')}">0</span>
+                <span class="muted"><i class="fa-solid fa-users"></i> 用户</span>
+            </div>
+            <div class="card stat">
+                <span class="stat-num" th:text="${#numbers.formatInteger(totals['stat_images'], 1, 'COMMA')}">0</span>
+                <span class="muted"><i class="fa-solid fa-image"></i> 图片</span>
+            </div>
+            <div class="card stat">
+                <span class="stat-num" th:text="${#numbers.formatInteger(totals['stat_albums'], 1, 'COMMA')}">0</span>
+                <span class="muted"><i class="fa-solid fa-folder-open"></i> 专辑</span>
+            </div>
+            <div class="card stat">
+                <span class="stat-num" th:text="${#numbers.formatInteger(totals['stat_image_views'], 1, 'COMMA')}">0</span>
+                <span class="muted"><i class="fa-solid fa-eye"></i> 图片浏览</span>
+            </div>
+            <div class="card stat">
+                <span class="stat-num" th:text="${#numbers.formatInteger(totals['stat_album_views'], 1, 'COMMA')}">0</span>
+                <span class="muted"><i class="fa-solid fa-book-open"></i> 专辑浏览</span>
+            </div>
+            <div class="card stat">
+                <span class="stat-num"
+                      th:text="${#numbers.formatDecimal(totals['stat_disk_used'] / 1000000.0, 1, 1)}">0</span>
+                <span class="muted"><i class="fa-solid fa-hard-drive"></i> MB 占用</span>
+            </div>
+        </div>
+
+        <!-- 与实时表计数的一致性提示 -->
+        <div class="alert alert-warning"
+             th:if="${liveUserCount != totals['stat_users'] or liveImageCount != totals['stat_images']}">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            统计值与实时计数不一致（用户 <strong th:text="${liveUserCount}"></strong> /
+            图片 <strong th:text="${liveImageCount}"></strong>）。迁移历史库后请点「重建统计」回填。
+        </div>
+
+        <!-- 近 30 天上传趋势（纯 CSS 柱状图，无外部依赖） -->
+        <h2><i class="fa-solid fa-chart-column"></i> 近 30 天上传量</h2>
+        <p class="muted" th:if="${#lists.isEmpty(daily)}">暂无按日统计数据</p>
+        <div class="daily-chart" th:unless="${#lists.isEmpty(daily)}">
+            <div class="daily-bar" th:each="d : ${daily}"
+                 th:title="${d.date()} + '：' + ${d.images()} + ' 张'">
+                <span class="daily-fill"
+                      th:style="'height:' + ${maxDailyImages > 0 ? (d.images() * 100.0 / maxDailyImages) : 0} + '%'"></span>
+                <span class="daily-label" th:text="${#temporals.format(d.date(), 'MM-dd')}"></span>
+            </div>
+        </div>
+
+        <div class="section-head">
+            <h2><i class="fa-solid fa-clock-rotate-left"></i> 最新上传</h2>
+            <form th:action="@{/admin/stats/rebuild}" method="post" class="inline-form"
+                  onsubmit="return confirm('将按现有数据全量重算统计（累计 + 按日），确定？')">
+                <button class="btn btn-ghost" type="submit">
+                    <i class="fa-solid fa-rotate"></i> 重建统计
+                </button>
+            </form>
+        </div>
+        <div class="grid">
+            <a class="img-card" th:each="img : ${recentImages}" th:href="@{'/image/' + ${img.idEncoded}}"
+               th:classappend="${nsfwBlur and img.imageNsfw} ? ' is-nsfw'">
+                <img th:src="${img.thumbUrl}" loading="lazy" alt="">
+                <div class="img-overlay">
+                    <span class="img-title" th:text="${#strings.abbreviate(img.imageOriginalFilename, 22)}"></span>
+                    <span class="img-views" th:text="${img.imageUserId != null} ? ${img.imageUserId} : '游客'"></span>
+                </div>
+            </a>
+        </div>
+        <p class="empty muted" th:if="${#lists.isEmpty(recentImages)}">还没有图片</p>
+    </div>
+</section>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

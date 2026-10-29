@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('登录 / 注册')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: topbar}"></header>
+<main th:replace="~{fragments/layout :: flash}"></main>
+
+<!-- 对齐原版 /login：双 tab（登录/注册）切换 -->
+<section class="container auth-page">
+    <div class="card auth-card">
+        <div class="alert alert-error" th:if="${floodBlocked}">
+            <i class="fa-solid fa-ban"></i>
+            当前网络因失败次数过多已被临时限制登录，请稍后再试。
+        </div>
+
+        <div class="tabs auth-tabs">
+            <button type="button" class="tab active" data-auth="login"><i class="fa-solid fa-right-to-bracket"></i> 登录</button>
+            <button type="button" class="tab" data-auth="register" th:if="${signupsEnabled}"><i class="fa-solid fa-user-plus"></i> 注册</button>
+        </div>
+
+        <form th:action="@{/login}" method="post" class="stack-form" id="panel-login">
+            <label>用户名或邮箱 <input type="text" name="identity" required autofocus></label>
+            <label>密码 <input type="password" name="password" required></label>
+            <div th:if="${captchaNeeded}" class="g-recaptcha" th:attr="data-sitekey=${captchaSiteKey}"></div>
+            <button class="btn btn-accent btn-block" type="submit" th:disabled="${floodBlocked}">登录</button>
+        </form>
+
+        <form th:action="@{/register}" method="post" class="stack-form" id="panel-register" hidden
+              th:if="${signupsEnabled}">
+            <label>用户名 <input type="text" name="username" required th:value="${username}"></label>
+            <label>邮箱 <input type="email" name="email" required th:value="${email}"></label>
+            <label>密码（至少 6 位）<input type="password" name="password" required></label>
+            <label>确认密码 <input type="password" name="confirm" required></label>
+            <div th:if="${captchaNeeded}" class="g-recaptcha" th:attr="data-sitekey=${captchaSiteKey}"></div>
+            <button class="btn btn-accent btn-block" type="submit" th:disabled="${floodBlocked}">创建账号</button>
+        </form>
+
+        <p class="muted" th:unless="${signupsEnabled}" style="margin:14px 0 0;font-size:13px;">
+            <i class="fa-solid fa-lock"></i> 本站暂未开放注册
+        </p>
+    </div>
+</section>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+<script th:replace="~{fragments/layout :: scripts}"></script>
+<!-- reCAPTCHA 只在需要时才加载（避免无谓的墙外请求拖慢首屏） -->
+<script th:if="${captchaNeeded}" src="https://www.google.com/recaptcha/api.js" async defer></script>
+<script>
+    document.querySelectorAll('[data-auth]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            document.querySelectorAll('[data-auth]').forEach(function (b) { b.classList.remove('active'); });
+            btn.classList.add('active');
+            document.getElementById('panel-login').hidden = btn.dataset.auth !== 'login';
+            var register = document.getElementById('panel-register');
+            if (register) { register.hidden = btn.dataset.auth !== 'register'; }
+        });
+    });
+    // 有注册错误回填时自动切到注册 tab
+    if (document.querySelector('#panel-register input[value]:not([value=""])')) {
+        document.querySelector('[data-auth="register"]').click();
+    }
+</script>
+</body>
+</html>

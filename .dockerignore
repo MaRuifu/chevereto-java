@@ -1,0 +1,15 @@
+target/
+data/
+.git/
+.gitignore
+.idea/
+.vscode/
+*.iml
+.DS_Store
+*.log
+.env
+README*.md
+docker-compose.yml
+LICENSE
+tools/
+docs/

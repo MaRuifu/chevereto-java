@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('IP 封禁')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: topbar}"></header>
+<main th:replace="~{fragments/layout :: flash}"></main>
+
+<section class="container settings-page">
+        <aside th:replace="~{fragments/admin-nav :: nav('bans')}"></aside>
+
+    <div class="settings-content">
+        <div class="card block">
+            <h2>新增 IP 封禁</h2>
+            <form th:action="@{/admin/bans}" method="post" class="form-row album-create">
+                <input type="text" name="ip" placeholder="IP 或网段（如 1.2.3.4）" required>
+                <input type="text" name="message" placeholder="备注（可选）">
+                <input type="text" name="expires" placeholder="过期时间 yyyy-MM-dd HH:mm（可选）">
+                <button class="btn btn-danger" type="submit">封禁</button>
+            </form>
+        </div>
+
+        <table class="table" th:if="${!#lists.isEmpty(bans)}">
+            <thead><tr><th class="nowrap">IP</th><th>备注</th><th class="nowrap">过期时间</th><th class="nowrap">添加时间</th><th></th></tr></thead>
+            <tbody>
+            <tr th:each="b : ${bans}">
+                <td class="nowrap" th:text="${b.ipBanIp}"></td>
+                <td th:text="${b.ipBanMessage}"></td>
+                <td class="nowrap" th:text="${b.ipBanExpires != null} ? ${#temporals.format(b.ipBanExpires, 'yyyy-MM-dd HH:mm')} : '永久'"></td>
+                <td class="nowrap" th:text="${#temporals.format(b.ipBanDate, 'yyyy-MM-dd HH:mm')}"></td>
+                <td class="nowrap">
+                    <form th:action="@{'/admin/bans/' + ${b.ipBanId} + '/delete'}" method="post" class="inline-form">
+                        <button class="btn btn-ghost btn-sm" type="submit">解除</button>
+                    </form>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+        <p class="empty muted" th:if="${#lists.isEmpty(bans)}">暂无封禁记录</p>
+    </div>
+</section>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

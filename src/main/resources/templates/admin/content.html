@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('内容与 NSFW')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: topbar}"></header>
+<main th:replace="~{fragments/layout :: flash}"></main>
+
+<section class="container settings-page">
+    <aside th:replace="~{fragments/admin-nav :: nav('content')}"></aside>
+
+    <div class="settings-content card">
+        <h2><i class="fa-solid fa-flag"></i> 内容与 NSFW</h2>
+        <p class="muted" style="margin-top:-6px;">
+            键名与默认值对齐原版 Chevereto <code>dashboard/settings/content.php</code>，
+            取值语义（谁能看到、谁能改）也与原版一致。
+        </p>
+
+        <form th:action="@{/admin/content}" method="post" class="stack-form narrow">
+            <h3 class="form-section"><i class="fa-solid fa-eye"></i> 展示</h3>
+            <label>列表页展示 NSFW 内容
+                <select name="show_nsfw_in_listings">
+                    <option value="1" th:selected="${settings['show_nsfw_in_listings'] == '1'}">启用</option>
+                    <option value="0" th:selected="${settings['show_nsfw_in_listings'] != '1'}">禁用</option>
+                </select>
+            </label>
+            <p class="muted" style="font-size:12px;margin:-6px 0 0;">
+                只对游客生效；已登录用户由个人设置「在列表中显示不适宜内容」决定，管理员始终不受限制。
+                即使关闭，用户仍能在自己的列表里看到自己的 NSFW 图片。
+            </p>
+
+            <label>列表页对 NSFW 缩略图做模糊
+                <select name="theme_nsfw_blur">
+                    <option value="1" th:selected="${settings['theme_nsfw_blur'] == '1'}">启用</option>
+                    <option value="0" th:selected="${settings['theme_nsfw_blur'] != '1'}">禁用</option>
+                </select>
+            </label>
+            <p class="muted" style="font-size:12px;margin:-6px 0 0;">
+                纯 CSS 效果（悬停即恢复清晰），图片地址不变。
+            </p>
+
+            <label>随机模式（/random）可抽到 NSFW
+                <select name="show_nsfw_in_random_mode">
+                    <option value="1" th:selected="${settings['show_nsfw_in_random_mode'] == '1'}">启用</option>
+                    <option value="0" th:selected="${settings['show_nsfw_in_random_mode'] != '1'}">禁用</option>
+                </select>
+            </label>
+
+            <label>NSFW 页面展示广告位（原版保留项）
+                <select name="show_banners_in_nsfw">
+                    <option value="1" th:selected="${settings['show_banners_in_nsfw'] == '1'}">启用</option>
+                    <option value="0" th:selected="${settings['show_banners_in_nsfw'] != '1'}">禁用</option>
+                </select>
+            </label>
+            <p class="muted" style="font-size:12px;margin:-6px 0 0;">
+                与原版一致：该开关仅为兼容保留，实际广告位由 <code>banner_*_nsfw</code> 键驱动。
+            </p>
+
+            <h3 class="form-section"><i class="fa-solid fa-pen"></i> 编辑权限</h3>
+            <label>锁定 NSFW 标记编辑
+                <select name="image_lock_nsfw_editing">
+                    <option value="1" th:selected="${settings['image_lock_nsfw_editing'] == '1'}">启用（仅管理员/管理组可改）</option>
+                    <option value="0" th:selected="${settings['image_lock_nsfw_editing'] != '1'}">禁用（图片所有者也可改）</option>
+                </select>
+            </label>
+            <p class="muted" style="font-size:12px;margin:-6px 0 0;">
+                与原版一致：锁定只作用于「编辑已有图片」，不影响上传时自行勾选 NSFW。
+            </p>
+
+            <h3 class="form-section"><i class="fa-solid fa-chalkboard-user"></i> 上传器</h3>
+            <label>上传器显示「不适宜内容」复选框
+                <select name="theme_nsfw_upload_checkbox">
+                    <option value="1" th:selected="${settings['theme_nsfw_upload_checkbox'] == '1'}">启用</option>
+                    <option value="0" th:selected="${settings['theme_nsfw_upload_checkbox'] != '1'}">禁用</option>
+                </select>
+            </label>
+
+            <h3 class="form-section"><i class="fa-solid fa-user-check"></i> 上传审核</h3>
+            <label>审核上传（进入待审核队列，不直接公开）
+                <select name="moderate_uploads">
+                    <option value="" th:selected="${settings['moderate_uploads'] == ''}">禁用</option>
+                    <option value="guest" th:selected="${settings['moderate_uploads'] == 'guest'}">仅游客</option>
+                    <option value="all" th:selected="${settings['moderate_uploads'] == 'all'}">全部用户</option>
+                </select>
+            </label>
+
+            <h3 class="form-section"><i class="fa-solid fa-robot"></i> ModerateContent 自动识别</h3>
+            <label>启用 ModerateContent
+                <select name="moderatecontent">
+                    <option value="1" th:selected="${settings['moderatecontent'] == '1'}">启用</option>
+                    <option value="0" th:selected="${settings['moderatecontent'] != '1'}">禁用</option>
+                </select>
+            </label>
+            <label>API Key <input type="text" name="moderatecontent_key" value="" autocomplete="off"
+                                 th:placeholder="${moderateKeySet} ? '已设置，留空表示不修改' : '未设置'"></label>
+            <label>自动标记 NSFW
+                <select name="moderatecontent_flag_nsfw">
+                    <option value="0" th:selected="${settings['moderatecontent_flag_nsfw'] == '0'}">禁用</option>
+                    <option value="a" th:selected="${settings['moderatecontent_flag_nsfw'] == 'a'}">成人内容</option>
+                    <option value="t" th:selected="${settings['moderatecontent_flag_nsfw'] == 't'}">成人 + 青少年</option>
+                </select>
+            </label>
+            <p class="muted" style="font-size:12px;margin:-6px 0 0;">
+                只在用户自己没勾选 NSFW 时才自动标记，不会覆盖用户的显式选择。
+            </p>
+            <label>拦截内容
+                <select name="moderatecontent_block_rating">
+                    <option value="" th:selected="${settings['moderatecontent_block_rating'] == ''}">不拦截</option>
+                    <option value="a" th:selected="${settings['moderatecontent_block_rating'] == 'a'}">拦截成人内容</option>
+                    <option value="t" th:selected="${settings['moderatecontent_block_rating'] == 't'}">拦截成人 + 青少年</option>
+                </select>
+            </label>
+            <label>被审核过的内容自动通过
+                <select name="moderatecontent_auto_approve">
+                    <option value="1" th:selected="${settings['moderatecontent_auto_approve'] == '1'}">启用</option>
+                    <option value="0" th:selected="${settings['moderatecontent_auto_approve'] != '1'}">禁用</option>
+                </select>
+            </label>
+
+            <button class="btn btn-accent" type="submit">保存内容设置</button>
+        </form>
+    </div>
+</section>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

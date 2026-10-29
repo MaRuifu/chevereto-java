@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('探索')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: topbar}"></header>
+<main th:replace="~{fragments/layout :: flash}"></main>
+
+<section class="container">
+    <div class="section-head">
+        <h1><i class="fa-solid fa-compass"></i> 探索</h1>
+        <span class="muted" th:text="'共 ' + ${images.totalElements} + ' 张'"></span>
+    </div>
+
+    <!-- 分类 tabs（对齐原版 explore 分类） -->
+    <div class="tabs">
+        <a class="tab" th:classappend="${activeCategory == null} ? ' active'" th:href="@{/explore}">全部</a>
+        <a class="tab" th:each="c : ${categories}"
+           th:classappend="${activeCategory != null and activeCategory.categoryId == c.categoryId} ? ' active'"
+           th:href="@{/explore(category=${c.categoryUrlKey})}" th:text="${c.categoryName}"></a>
+    </div>
+
+    <div class="grid">
+        <a class="img-card" th:each="img : ${images}" th:href="@{'/image/' + ${img.idEncoded}}"
+           th:classappend="${nsfwBlur and img.imageNsfw} ? ' is-nsfw'">
+            <img th:src="${img.thumbUrl}" th:alt="${img.imageTitle}" loading="lazy">
+            <div class="img-overlay">
+                <span class="img-title" th:text="${#strings.abbreviate(img.imageTitle != null ? img.imageTitle : img.imageOriginalFilename, 26)}"></span>
+                <span class="img-views"><i class="fa-solid fa-eye"></i> <span th:text="${img.imageViews}"></span></span>
+            </div>
+        </a>
+    </div>
+    <p class="empty muted" th:if="${#lists.isEmpty(images)}">暂无公开图片</p>
+
+    <nav class="pagination" th:if="${images.totalPages > 1}">
+        <a th:if="${currentPage > 1}"
+           th:href="@{${path}(page=${currentPage - 1},category=${query})}">← 上一页</a>
+        <span class="muted" th:text="${currentPage} + ' / ' + ${images.totalPages}"></span>
+        <a th:if="${currentPage < images.totalPages}"
+           th:href="@{${path}(page=${currentPage + 1},category=${query})}">下一页 →</a>
+    </nav>
+</section>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+<script th:replace="~{fragments/layout :: scripts}"></script>
+</body>
+</html>

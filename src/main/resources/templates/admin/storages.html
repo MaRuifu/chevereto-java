@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('外部存储')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: topbar}"></header>
+<main th:replace="~{fragments/layout :: flash}"></main>
+
+<section class="container settings-page">
+        <aside th:replace="~{fragments/admin-nav :: nav('storages')}"></aside>
+
+    <div class="settings-content">
+        <div class="table-scroll">
+        <table class="table">
+            <thead><tr><th class="nowrap">名称</th><th class="nowrap">驱动</th><th>目标</th><th class="nowrap">用量</th><th class="nowrap">状态</th><th class="nowrap">操作</th></tr></thead>
+            <tbody>
+            <tr th:each="s : ${storages}">
+                <td class="nowrap" th:text="${s.storageName}"></td>
+                <td class="nowrap"><span class="tag" th:text="${services[s.storageId]}"></span></td>
+                <td class="muted break-anywhere"
+                    th:text="${services[s.storageId] == 'local'} ?
+                        ((${s.storageServer} != null and !${s.storageServer.isEmpty()} ? ${s.storageServer} : '默认图片目录')) :
+                        ((${s.storageBucket} != null and !${s.storageBucket.isEmpty()} ? ${s.storageBucket} + ' @ ' : '') +
+                        (${s.storageServer} != null and !${s.storageServer.isEmpty()} ? ${s.storageServer} :
+                            (${s.storageRegion} != null and !${s.storageRegion.isEmpty()} ? ${s.storageRegion} : '')))"></td>
+                <td class="nowrap">
+                    <a th:href="@{'/admin/storages/' + ${s.storageId} + '/images'}"
+                       th:text="${#numbers.formatInteger(stats[s.storageId][0], 0, 'COMMA')} + ' 张 / ' +
+                       (${stats[s.storageId][1] >= 1073741824} ?
+                           ${#numbers.formatDecimal(stats[s.storageId][1] / 1073741824.0, 1, 2)} + ' GB' :
+                           (${stats[s.storageId][1] >= 1048576} ?
+                               ${#numbers.formatDecimal(stats[s.storageId][1] / 1048576.0, 1, 1)} + ' MB' :
+                               ${#numbers.formatDecimal(stats[s.storageId][1] / 1024.0, 1, 1)} + ' KB'))"></a>
+                </td>
+                <td class="nowrap">
+                    <span class="tag" th:classappend="${s.storageIsActive} ? 'tag-ok' : 'tag-bad'"
+                          th:text="${s.storageIsActive} ? '启用' : '停用'"></span>
+                </td>
+                <td class="actions">
+                    <a class="btn btn-ghost btn-sm" th:href="@{'/admin/storages/' + ${s.storageId} + '/edit'}"><i class="fa-solid fa-pen"></i> 编辑</a>
+                    <form th:action="@{'/admin/storages/' + ${s.storageId} + '/toggle'}" method="post" class="inline-form">
+                        <button class="btn btn-ghost btn-sm" type="submit" th:text="${s.storageIsActive} ? '停用' : '启用'"></button>
+                    </form>
+                    <form th:action="@{'/admin/storages/' + ${s.storageId} + '/delete'}" method="post" class="inline-form"
+                          onsubmit="return confirm('确定删除该存储配置？')">
+                        <button class="btn btn-danger btn-sm" type="submit">删除</button>
+                    </form>
+                </td>
+            </tr>
+            <!-- 库中没有本地存储行，但存在迁移老图（image_storage_id 为 NULL）时显示隐式本地 -->
+            <tr th:if="${implicitStats != null}">
+                <td class="nowrap">本地存储（隐式）</td>
+                <td class="nowrap"><span class="tag">local</span></td>
+                <td class="muted break-anywhere">默认图片目录（image_storage_id 为 NULL 的老图）</td>
+                <td class="nowrap"><span th:text="${#numbers.formatInteger(implicitStats[0], 0, 'COMMA')} + ' 张 / ' +
+                    (${implicitStats[1] >= 1048576} ? ${#numbers.formatDecimal(implicitStats[1] / 1048576.0, 1, 1)} + ' MB'
+                        : ${#numbers.formatDecimal(implicitStats[1] / 1024.0, 1, 1)} + ' KB')"></span></td>
+                <td class="nowrap"><span class="tag tag-ok">兜底</span></td>
+                <td class="nowrap muted">—</td>
+            </tr>
+            </tbody>
+        </table>
+        </div>
+        <p class="muted" style="font-size:12px;margin-top:-6px">
+            说明：停用只是不再接收新上传，该存储已有的图片照常展示（与 Chevereto 一致）；全都不启用时新上传自动落到本地默认目录。
+        </p>
+
+        <div class="card block">
+            <h2>添加存储</h2>
+            <form th:action="@{/admin/storages}" method="post" class="stack-form narrow">
+                <label>驱动
+                    <select name="apiId" id="driver-select" onchange="toggleDriverFields()">
+                        <option th:each="api : ${apis}"
+                                th:if="${#lists.contains({'local','s3','s3compatible','oss','cos','ftp','sftp'}, api.storageApiType == null ? '' : #strings.toLowerCase(api.storageApiType))}"
+                                th:value="${api.storageApiId}"
+                                th:attr="data-type=${api.storageApiType}"
+                                th:text="${api.storageApiName}"></option>
+                    </select>
+                </label>
+                <label>名称 <input type="text" name="name" required placeholder="如：腾讯云 COS 主存储"></label>
+
+                <!-- 本地：磁盘根目录 -->
+                <div class="driver-fields" data-driver="local">
+                    <label>磁盘根目录 <input type="text" name="server" placeholder="留空 = 使用应用默认图片目录"></label>
+                </div>
+
+                <!-- S3 / S3 compatible：共用同一组字段 -->
+                <div class="driver-fields" data-driver="s3" hidden>
+                    <label>Bucket <input type="text" name="bucket" placeholder="my-bucket"></label>
+                    <label>Endpoint（AWS 官方可留空）<input type="text" name="server" placeholder="https://s3.ap-northeast-1.amazonaws.com"></label>
+                    <label>Region <input type="text" name="region" placeholder="ap-northeast-1"></label>
+                    <label>Access Key <input type="text" name="key" autocomplete="off"></label>
+                    <label>Secret Key <input type="password" name="secret" autocomplete="new-password"></label>
+                </div>
+
+                <!-- 阿里云 OSS -->
+                <div class="driver-fields" data-driver="oss" hidden>
+                    <label>Bucket <input type="text" name="bucket" placeholder="my-bucket"></label>
+                    <label>Endpoint <input type="text" name="server" placeholder="https://oss-cn-hangzhou.aliyuncs.com" required></label>
+                    <label>Access Key（AccessKeyId）<input type="text" name="key" autocomplete="off"></label>
+                    <label>Secret Key（AccessKeySecret）<input type="password" name="secret" autocomplete="new-password"></label>
+                </div>
+
+                <!-- 腾讯云 COS -->
+                <div class="driver-fields" data-driver="cos" hidden>
+                    <label>Bucket（含 APPID）<input type="text" name="bucket" placeholder="mybucket-1250000000" required></label>
+                    <label>地域（Region）<input type="text" name="region" placeholder="ap-guangzhou" required></label>
+                    <label>SecretId <input type="text" name="key" autocomplete="off"></label>
+                    <label>SecretKey <input type="password" name="secret" autocomplete="new-password"></label>
+                </div>
+
+                <!-- FTP -->
+                <div class="driver-fields" data-driver="ftp" hidden>
+                    <label>主机（host 或 host:端口，默认 21）<input type="text" name="server" placeholder="ftp.example.com:21" required></label>
+                    <label>用户名 <input type="text" name="key" autocomplete="off"></label>
+                    <label>密码 <input type="password" name="secret" autocomplete="new-password"></label>
+                </div>
+
+                <!-- SFTP -->
+                <div class="driver-fields" data-driver="sftp" hidden>
+                    <label>主机（host 或 host:端口，默认 22）<input type="text" name="server" placeholder="sftp.example.com:22" required></label>
+                    <label>用户名 <input type="text" name="key" autocomplete="off" required></label>
+                    <label>密码（私钥认证可留空）<input type="password" name="secret" autocomplete="new-password"></label>
+                    <label>私钥路径（可选，密钥认证）<input type="text" name="accountId" placeholder="/Users/you/.ssh/id_ed25519"></label>
+                </div>
+
+                <!-- 非本地驱动的公共字段：对外访问域名 -->
+                <div class="driver-fields" data-driver="obj" hidden>
+                    <label>自定义访问域名（可选，CDN / 反代）<input type="text" name="url" placeholder="https://cdn.example.com"></label>
+                </div>
+
+                <p class="muted" style="font-size:12px;margin:4px 0 0">
+                    提示：FTP / SFTP 存储没有 HTTP 直链，建议填写「自定义访问域名」指向你自己的 Web 服务器或 CDN，否则图片外链不可用。
+                </p>
+                <button class="btn btn-accent" type="submit">添加存储</button>
+            </form>
+        </div>
+    </div>
+</section>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+<script>
+    function toggleDriverFields() {
+        var sel = document.getElementById('driver-select');
+        if (!sel || !sel.options.length) return;
+        var raw = sel.options[sel.selectedIndex].dataset.type || '';
+        // s3compatible 与 s3 共用同一组字段
+        var type = raw === 's3compatible' ? 's3' : raw;
+        var isLocal = type === 'local';
+        document.querySelectorAll('.driver-fields').forEach(function (el) {
+            var d = el.dataset.driver;
+            var show = (d === type) || (d === 'obj' && !isLocal);
+            el.hidden = !show;
+            el.querySelectorAll('input').forEach(function (i) { i.disabled = !show; });
+        });
+    }
+    document.addEventListener('DOMContentLoaded', toggleDriverFields);
+    toggleDriverFields();
+</script>
+</body>
+</html>

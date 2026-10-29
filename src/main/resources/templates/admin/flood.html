@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('洪水保护')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: topbar}"></header>
+<main th:replace="~{fragments/layout :: flash}"></main>
+
+<section class="container settings-page">
+    <aside th:replace="~{fragments/admin-nav :: nav('flood')}"></aside>
+
+    <div class="settings-content card">
+        <h2><i class="fa-solid fa-faucet"></i> 洪水保护</h2>
+        <p class="muted" style="margin-top:-6px;">
+            同一 IP 在时间窗口内上传过多图片时拦截后续上传（管理员不受限制）。
+            键名与默认值完全对齐原版 <code>flood_uploads_*</code>。
+        </p>
+
+        <form th:action="@{/admin/flood}" method="post" class="stack-form narrow">
+            <label>洪水保护
+                <select name="flood_uploads_protection">
+                    <option value="1" th:selected="${settings['flood_uploads_protection'] == '1'}">启用</option>
+                    <option value="0" th:selected="${settings['flood_uploads_protection'] != '1'}">禁用</option>
+                </select>
+            </label>
+
+            <label>触发时给收件箱发邮件
+                <select name="flood_uploads_notify">
+                    <option value="1" th:selected="${settings['flood_uploads_notify'] == '1'}">启用</option>
+                    <option value="0" th:selected="${settings['flood_uploads_notify'] != '1'}">禁用</option>
+                </select>
+            </label>
+            <p class="muted" style="font-size:12px;margin:-6px 0 0;">
+                收件地址取「邮箱」页的「收件箱」，同一窗口内只通知一次。
+            </p>
+
+            <h3 class="form-section"><i class="fa-solid fa-clock"></i> 各时间窗口上限</h3>
+            <label>每分钟 <input type="number" min="0" name="flood_uploads_minute" th:value="${settings['flood_uploads_minute']}"></label>
+            <label>每小时 <input type="number" min="0" name="flood_uploads_hour" th:value="${settings['flood_uploads_hour']}"></label>
+            <label>每天 <input type="number" min="0" name="flood_uploads_day" th:value="${settings['flood_uploads_day']}"></label>
+            <label>每周 <input type="number" min="0" name="flood_uploads_week" th:value="${settings['flood_uploads_week']}"></label>
+            <label>每月 <input type="number" min="0" name="flood_uploads_month" th:value="${settings['flood_uploads_month']}"></label>
+            <p class="muted" style="font-size:12px;margin:-6px 0 0;">
+                填 0 表示该窗口不限制（与原版一致）。判定按「达到即拦截」，即窗口内最多成功上传 N 张。
+                窗口是滚动窗口（最近 1 分钟 / 1 小时 / 24 小时 / 7 天 / 1 个月），不是自然日。
+            </p>
+
+            <h3 class="form-section"><i class="fa-solid fa-shield-halved"></i> 登录 / 注册失败限流</h3>
+            <p class="muted" style="font-size:12px;margin:0 0 8px;">
+                与原版一致：同一 IP 在最近 24 小时内「登录 + 注册」失败累计
+                <strong>超过 25 次</strong>会直接返回 403（硬编码阈值，不在设置里）；
+                达到验证码阈值则优先要求人机验证。
+            </p>
+            <label>启用 reCAPTCHA
+                <select name="recaptcha">
+                    <option value="1" th:selected="${settings['recaptcha'] == '1'}">启用</option>
+                    <option value="0" th:selected="${settings['recaptcha'] != '1'}">禁用</option>
+                </select>
+            </label>
+            <label>要求验证码的失败次数阈值
+                <input type="number" min="1" name="recaptcha_threshold" th:value="${settings['recaptcha_threshold']}"></label>
+
+            <button class="btn btn-accent" type="submit">保存洪水保护设置</button>
+        </form>
+
+        <div class="alert alert-info" style="margin-top:22px;background:var(--bg);border:1px solid var(--border);">
+            <i class="fa-solid fa-circle-info"></i>
+            当前状态：fail 记录 <strong th:text="${failCount}">0</strong> 条来自
+            <strong th:text="${failIps}">0</strong> 个 IP（最近 24 小时，登录 + 注册）。
+        </div>
+    </div>
+</section>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('设置')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: topbar}"></header>
+<main th:replace="~{fragments/layout :: flash}"></main>
+
+<!-- 对齐原版 /settings：左侧菜单 + 内容 -->
+<section class="container settings-page">
+    <aside class="settings-menu">
+        <a class="settings-menu-item" th:classappend="${tab == 'profile'} ? ' active'" th:href="@{/settings?tab=profile}">
+            <i class="fa-solid fa-user"></i> 个人资料</a>
+        <a class="settings-menu-item" th:classappend="${tab == 'password'} ? ' active'" th:href="@{/settings?tab=password}">
+            <i class="fa-solid fa-lock"></i> 密码</a>
+        <a class="settings-menu-item" th:classappend="${tab == 'api'} ? ' active'" th:href="@{/settings?tab=api}">
+            <i class="fa-solid fa-code"></i> API</a>
+        <a class="settings-menu-item" th:href="@{'/u/' + ${me.userUsername}}">
+            <i class="fa-solid fa-images"></i> 我的内容</a>
+    </aside>
+
+    <div class="settings-content card">
+        <!-- 个人资料 -->
+        <th:block th:if="${tab == 'profile'}">
+            <h2><i class="fa-solid fa-user"></i> 个人资料</h2>
+            <form th:action="@{/settings/profile}" method="post" class="stack-form narrow">
+                <label>显示名称 <input type="text" name="name" th:value="${me.userName}"></label>
+                <label>个人简介 <textarea name="bio" rows="2" th:text="${me.userBio}"></textarea></label>
+                <label>个人网站 <input type="text" name="website" th:value="${me.userWebsite}" placeholder="https://"></label>
+                <label class="checkbox">
+                    <input type="checkbox" name="showNsfw" th:checked="${me.isUserShowNsfwListings()}">
+                    在列表中显示敏感内容
+                </label>
+                <button class="btn btn-accent" type="submit">保存</button>
+            </form>
+        </th:block>
+
+        <!-- 密码 -->
+        <th:block th:if="${tab == 'password'}">
+            <h2><i class="fa-solid fa-lock"></i> 修改密码</h2>
+            <form th:action="@{/settings/password}" method="post" class="stack-form narrow">
+                <label>旧密码 <input type="password" name="oldPassword" required></label>
+                <label>新密码 <input type="password" name="newPassword" required></label>
+                <label>确认新密码 <input type="password" name="confirm" required></label>
+                <button class="btn btn-accent" type="submit">保存</button>
+            </form>
+        </th:block>
+
+        <!-- API（原版 settings/api） -->
+        <th:block th:if="${tab == 'api'}">
+            <h2><i class="fa-solid fa-code"></i> API</h2>
+            <p class="muted">使用 v1.1 兼容接口上传、查询、删除图片。</p>
+            <!-- 与原版一致：完整 Key 仅在生成后显示一次 -->
+            <div class="url-row" th:if="${newApiKey != null}">
+                <input type="text" readonly th:value="${newApiKey}" id="api-key-input">
+                <button class="btn btn-ghost" type="button" onclick="copyApiKey()">复制</button>
+            </div>
+            <p class="alert alert-warning" th:if="${newApiKey != null}">
+                <i class="fa-solid fa-key"></i> 请立即复制保存：完整 Key 只显示这一次，之后只能看到 <code>chv_xxx_***</code>。
+            </p>
+
+            <!-- 常驻展示（原版 getUserPublic：chv_{encodeID(id)}_***） -->
+            <div class="url-row" th:if="${apiKeyPublic != null}">
+                <input type="text" readonly th:value="${apiKeyPublic}" id="api-key-public">
+            </div>
+            <p class="muted" th:if="${apiKeyPublic != null}">
+                <i class="fa-solid fa-circle-info"></i> 完整 Key 只在生成时显示一次（数据库中只保存单向散列，无法还原）。
+            </p>
+            <p class="muted" th:if="${apiKeyPublic == null and newApiKey == null}">尚未生成 API Key</p>
+
+            <form th:action="@{/settings/api}" method="post"
+                  onsubmit="return confirm('重新生成后旧 Key 立即失效，确定？')">
+                <button class="btn btn-accent" type="submit"
+                        th:text="${apiKeyPublic != null} ? '重新生成 API Key' : '生成 API Key'"></button>
+            </form>
+            <details class="api-help">
+                <summary>调用示例</summary>
+<pre>curl -F "source=@photo.jpg" -F "key=你的KEY" \
+  http://your-host/api/1.1/upload</pre>
+            </details>
+        </th:block>
+    </div>
+</section>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+<script th:replace="~{fragments/layout :: scripts}"></script>
+<script>
+    function copyApiKey() {
+        var el = document.getElementById('api-key-input');
+        if (el) navigator.clipboard.writeText(el.value);
+    }
+</script>
+</body>
+</html>

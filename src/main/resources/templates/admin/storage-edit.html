@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(${'编辑存储 - ' + storage.storageName})}"></head>
+<body>
+<header th:replace="~{fragments/layout :: topbar}"></header>
+<main th:replace="~{fragments/layout :: flash}"></main>
+
+<section class="container settings-page">
+        <aside th:replace="~{fragments/admin-nav :: nav('storages')}"></aside>
+
+    <div class="settings-content">
+        <div class="card block">
+            <h2><i class="fa-solid fa-pen"></i> 编辑存储「<span th:text="${storage.storageName}"></span>」
+                <span class="tag" th:text="${service}"></span></h2>
+            <p class="muted" style="font-size:13px">驱动类型不可更改（保持历史图片路由一致）；凭证留空表示保持原值不变。</p>
+            <form th:action="@{'/admin/storages/' + ${storage.storageId} + '/update'}" method="post" class="stack-form narrow">
+
+                <label>名称 <input type="text" name="name" required th:value="${storage.storageName}"></label>
+
+                <!-- local -->
+                <div class="driver-fields" data-driver="local" th:hidden="${service != 'local'}">
+                    <label>磁盘根目录 <input type="text" name="server" th:value="${storage.storageServer}"
+                                             placeholder="留空 = 使用应用默认图片目录"></label>
+                </div>
+
+                <!-- s3 / s3compatible -->
+                <div class="driver-fields" data-driver="s3" th:hidden="${service != 's3' and service != 's3compatible'}">
+                    <label>Bucket <input type="text" name="bucket" th:value="${storage.storageBucket}"></label>
+                    <label>Endpoint <input type="text" name="server" th:value="${storage.storageServer}"></label>
+                    <label>Region <input type="text" name="region" th:value="${storage.storageRegion}"></label>
+                    <label>Access Key（留空保持不变）<input type="text" name="key" autocomplete="off"
+                                                          th:value="${storage.storageKey}"></label>
+                    <label>Secret Key（留空保持不变）<input type="password" name="secret" autocomplete="new-password"></label>
+                </div>
+
+                <!-- oss -->
+                <div class="driver-fields" data-driver="oss" th:hidden="${service != 'oss'}">
+                    <label>Bucket <input type="text" name="bucket" th:value="${storage.storageBucket}"></label>
+                    <label>Endpoint <input type="text" name="server" th:value="${storage.storageServer}"></label>
+                    <label>Access Key（留空保持不变）<input type="text" name="key" autocomplete="off"
+                                                          th:value="${storage.storageKey}"></label>
+                    <label>Secret Key（留空保持不变）<input type="password" name="secret" autocomplete="new-password"></label>
+                </div>
+
+                <!-- cos -->
+                <div class="driver-fields" data-driver="cos" th:hidden="${service != 'cos'}">
+                    <label>Bucket（含 APPID）<input type="text" name="bucket" th:value="${storage.storageBucket}"></label>
+                    <label>地域（Region）<input type="text" name="region" th:value="${storage.storageRegion}"></label>
+                    <label>SecretId（留空保持不变）<input type="text" name="key" autocomplete="off"
+                                                          th:value="${storage.storageKey}"></label>
+                    <label>SecretKey（留空保持不变）<input type="password" name="secret" autocomplete="new-password"></label>
+                </div>
+
+                <!-- ftp -->
+                <div class="driver-fields" data-driver="ftp" th:hidden="${service != 'ftp'}">
+                    <label>主机（host 或 host:端口）<input type="text" name="server" th:value="${storage.storageServer}"></label>
+                    <label>用户名 <input type="text" name="key" th:value="${storage.storageKey}"></label>
+                    <label>密码（留空保持不变）<input type="password" name="secret" autocomplete="new-password"></label>
+                </div>
+
+                <!-- sftp -->
+                <div class="driver-fields" data-driver="sftp" th:hidden="${service != 'sftp'}">
+                    <label>主机（host 或 host:端口）<input type="text" name="server" th:value="${storage.storageServer}"></label>
+                    <label>用户名 <input type="text" name="key" th:value="${storage.storageKey}"></label>
+                    <label>密码（留空保持不变）<input type="password" name="secret" autocomplete="new-password"></label>
+                    <label>私钥路径（可选）<input type="text" name="accountId" th:value="${storage.storageAccountId}"
+                                                  placeholder="/Users/you/.ssh/id_ed25519"></label>
+                </div>
+
+                <!-- 非本地公共字段 -->
+                <div class="driver-fields" data-driver="obj" th:hidden="${service == 'local'}">
+                    <label>自定义访问域名（CDN / 反代）<input type="text" name="url" th:value="${storage.storageUrl}"
+                                                              placeholder="https://cdn.example.com"></label>
+                </div>
+
+                <label class="checkbox"><input type="checkbox" name="isActive" value="true"
+                                               th:checked="${storage.storageIsActive}"> 启用（作为新上传目标）<input
+                        type="hidden" name="isActive" value="false"></label>
+
+                <button class="btn btn-accent" type="submit">保存修改</button>
+                <a class="btn btn-ghost" th:href="@{/admin/storages}">取消</a>
+            </form>
+        </div>
+    </div>
+</section>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

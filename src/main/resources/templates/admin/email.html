@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('邮箱配置')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: topbar}"></header>
+<main th:replace="~{fragments/layout :: flash}"></main>
+
+<section class="container settings-page">
+    <aside th:replace="~{fragments/admin-nav :: nav('email')}"></aside>
+
+    <div class="settings-content card">
+        <h2><i class="fa-solid fa-envelope"></i> 邮箱配置</h2>
+        <p class="muted" style="margin-top:-6px;">
+            参数写入 <code>chv_settings</code>（键名与原版 Chevereto 完全一致：<code>email_mode</code>、
+            <code>email_smtp_server</code>、<code>email_smtp_server_security</code> …），
+            因此原版与 Java 版可以互相读取同一份配置。
+        </p>
+
+        <div class="alert alert-success" th:if="${mailReady}">
+            <i class="fa-solid fa-circle-check"></i> 邮件已具备发送条件（主机与发件人已填写）
+        </div>
+        <div class="alert alert-warning" th:unless="${mailReady}">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            尚未配置完整：需至少填写「SMTP 主机」与「发件人邮箱」才能发信
+        </div>
+
+        <form th:action="@{/admin/email}" method="post" class="stack-form narrow">
+            <h3 class="form-section"><i class="fa-solid fa-paper-plane"></i> 发送方式</h3>
+            <label>邮件模式
+                <select name="email_mode">
+                    <option value="smtp" th:selected="${settings['email_mode'] == 'smtp'}">SMTP（推荐）</option>
+                    <option value="mail" th:selected="${settings['email_mode'] == 'mail'}">PHP mail() 函数（原版遗留，Java 侧回落 SMTP）</option>
+                </select>
+            </label>
+
+            <h3 class="form-section"><i class="fa-solid fa-server"></i> SMTP 服务器</h3>
+            <label>主机 <input type="text" name="email_smtp_server" th:value="${settings['email_smtp_server']}" placeholder="smtp.example.com"></label>
+            <label>端口
+                <select name="email_smtp_server_port">
+                    <option th:each="p : ${ {'25','80','465','587'} }" th:value="${p}" th:text="${p}"
+                            th:selected="${settings['email_smtp_server_port'] == p}"></option>
+                </select>
+            </label>
+            <label>加密方式
+                <select name="email_smtp_server_security">
+                    <option value="tls" th:selected="${settings['email_smtp_server_security'] == 'tls'}">TLS（587，推荐）</option>
+                    <option value="ssl" th:selected="${settings['email_smtp_server_security'] == 'ssl'}">SSL（465）</option>
+                    <option value="unsecured" th:selected="${settings['email_smtp_server_security'] == 'unsecured'}">不加密</option>
+                </select>
+            </label>
+            <label>账号 <input type="text" name="email_smtp_server_username" th:value="${settings['email_smtp_server_username']}" autocomplete="off"></label>
+            <label>密码
+                <input type="password" name="email_smtp_server_password" value="" autocomplete="new-password"
+                       th:placeholder="${passwordSet} ? '已设置，留空表示不修改' : '未设置'">
+            </label>
+            <p class="muted" style="font-size:12px;margin:-6px 0 0;">
+                密码留空表示不修改。原版在设置了 <code>CHEVERETO_ENCRYPTION_KEY</code> 时会加密存储，
+                本系统读取时自动解密、保存时按需加密，无需手工转换。
+            </p>
+
+            <h3 class="form-section"><i class="fa-solid fa-at"></i> 发件人 / 收件人</h3>
+            <label>发件人邮箱 <input type="email" name="email_from_email" th:value="${settings['email_from_email']}" placeholder="noreply@example.com"></label>
+            <label>发件人名称 <input type="text" name="email_from_name" th:value="${settings['email_from_name']}"></label>
+            <label>收件箱（洪水/系统通知寄往此地址）
+                <input type="email" name="email_incoming_email" th:value="${settings['email_incoming_email']}" placeholder="admin@example.com"></label>
+
+            <h3 class="form-section"><i class="fa-solid fa-toggle-on"></i> 邮件相关开关</h3>
+            <label class="checkbox">
+                <input type="checkbox" name="notify_user_signups" value="1"
+                       th:checked="${settings['notify_user_signups'] == '1'}">
+                有新用户注册时给收件箱发通知
+            </label>
+            <p class="muted" style="font-size:12px;margin:-6px 0 0;">
+                原版还有「注册需要邮箱激活」（<code>require_user_email_confirmation</code>），
+                本系统尚未实现激活邮件与激活链接，为避免注册用户无法登录，该开关暂不下发；
+                库里若已有该键会被读取但不生效。新注册用户一律为 <code>valid</code> 状态。
+            </p>
+
+            <button class="btn btn-accent" type="submit">保存邮箱配置</button>
+        </form>
+
+        <hr class="line-separator" style="margin:28px 0;border:none;border-top:1px solid var(--border);">
+
+        <h3 class="form-section"><i class="fa-solid fa-vial"></i> 测试发送</h3>
+        <form th:action="@{/admin/email/test}" method="post" class="form-row">
+            <label style="max-width:340px;">收件地址 <input type="email" name="to" th:value="${settings['email_from_email']}" required></label>
+            <button class="btn btn-ghost" type="submit">发送测试邮件</button>
+        </form>
+        <p class="muted" style="font-size:12px;">
+            测试会使用当前已保存的配置。若刚改过参数，请先保存再测试。
+        </p>
+    </div>
+</section>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

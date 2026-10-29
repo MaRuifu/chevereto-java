@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('分类管理')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: topbar}"></header>
+<main th:replace="~{fragments/layout :: flash}"></main>
+
+<section class="container settings-page">
+        <aside th:replace="~{fragments/admin-nav :: nav('categories')}"></aside>
+
+    <div class="settings-content">
+        <div class="card block">
+            <h2>新增分类</h2>
+            <form th:action="@{/admin/categories}" method="post" class="form-row album-create">
+                <input type="text" name="name" placeholder="分类名称（≤32字）" required>
+                <input type="text" name="urlKey" placeholder="URL Key（小写字母/数字/短横线）" required>
+                <button class="btn btn-accent" type="submit">添加</button>
+            </form>
+        </div>
+
+        <table class="table" th:if="${!#lists.isEmpty(categories)}">
+            <thead><tr><th class="nowrap">ID</th><th>名称</th><th>URL Key</th><th></th></tr></thead>
+            <tbody>
+            <tr th:each="c : ${categories}">
+                <td class="nowrap" th:text="${c.categoryId}"></td>
+                <td><a th:href="@{/explore(category=${c.categoryUrlKey})}" th:text="${c.categoryName}"></a></td>
+                <td class="break-anywhere" th:text="${c.categoryUrlKey}"></td>
+                <td class="nowrap">
+                    <form th:action="@{'/admin/categories/' + ${c.categoryId} + '/delete'}" method="post" class="inline-form"
+                          onsubmit="return confirm('删除分类后相关图片将变为无分类，确定？')">
+                        <button class="btn btn-ghost btn-sm" type="submit">删除</button>
+                    </form>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

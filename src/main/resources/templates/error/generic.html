@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('出错了')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: topbar}"></header>
+
+<section class="container auth-page">
+    <div class="card auth-card center">
+        <p class="big-icon">😕</p>
+        <h1>出错了</h1>
+        <p class="muted" th:text="${errorMsg != null ? errorMsg : '未知错误'}"></p>
+        <a class="btn btn-accent" th:href="@{/}">返回首页</a>
+    </div>
+</section>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>
